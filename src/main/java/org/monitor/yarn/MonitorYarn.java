@@ -243,8 +243,8 @@ public class MonitorYarn {
                 sb_url.append(":"+pfetch.getProperty("rmport"));
                 sb_url.append("/ws/v1/cluster/apps");
 
-//                List<Application> listApps = failedApplications(sb_url.toString());
-                List<Application> listApps = failedApplications("file:///Users/kiran/Desktop/test.json");
+                List<Application> listApps = failedApplications(sb_url.toString());
+//                List<Application> listApps = failedApplications("file:///Users/kiran/Desktop/test.json");
 
                 StringBuilder sb = new StringBuilder();
 
