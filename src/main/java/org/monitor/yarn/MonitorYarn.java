@@ -170,23 +170,16 @@ public class MonitorYarn {
             return listAppl;
         }
 
-        public static boolean sendEmail(String content) {
-
-            // Recipient's email ID needs to be mentioned.
-            String to = "knadigatla@gmail.com";
-            String to1 = "vchimmani@gmail.com";
+        public static boolean sendEmail(PropertyFetcher pFetcher, String content) {
 
             // Sender's email ID needs to be mentioned
-            String from = "test-java@gmail.com";
-
-            // Assuming you are sending email from localhost
-            String host = "localhost";
+            String from = pFetcher.getProperty("email_from");
 
             // Get system properties
             Properties properties = System.getProperties();
 
             // Setup mail server
-            properties.setProperty("mail.smtp.host", host);
+            properties.setProperty("mail.smtp.host", pFetcher.getProperty("smtp_host"));
 
             // Get the default Session object.
             Session session = Session.getDefaultInstance(properties);
@@ -199,12 +192,14 @@ public class MonitorYarn {
                 message.setFrom(new InternetAddress(from));
 
                 // Set To: header field of the header.
-                message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
-                message.addRecipient(Message.RecipientType.TO, new InternetAddress(to1));
+                String[] to_Array = pFetcher.getProperty("email_to").split(";");
+                for (String to_addr:to_Array) {
+                    message.addRecipient(Message.RecipientType.TO, new InternetAddress(to_addr));
+                }
 
 
                 // Set Subject: header field
-                message.setSubject("This is the Subject Line!");
+                message.setSubject(pFetcher.getProperty("email_subject"));
 
                 // Send the actual HTML message, as big as you like
                 message.setContent(content, "text/html" );
@@ -224,7 +219,7 @@ public class MonitorYarn {
 
             if(args.length != 1){
                 System.out.println("Invalid number of arguments.\n " +
-                        "Usage -> java -jar <jar file name>.jar -classpath org.monitor.yarn.MonitorYarn <path to properties file>");
+                        "Usage -> java -cp <full jar path - jar file name>.jar org.monitor.yarn.MonitorYarn <path to properties file>");
                 System.exit(1);
             }
             File fd = new File(args[0]);
@@ -243,6 +238,7 @@ public class MonitorYarn {
                 sb_url.append(":"+pfetch.getProperty("rmport"));
                 sb_url.append("/ws/v1/cluster/apps");
 
+                System.out.println(sb_url.toString());
                 List<Application> listApps = failedApplications(sb_url.toString());
 //                List<Application> listApps = failedApplications("file:///Users/kiran/Desktop/test.json");
 
@@ -277,7 +273,7 @@ public class MonitorYarn {
                 sb.append("</body>");
                 sb.append("</html>");
 
-                sendEmail(sb.toString());
+                sendEmail(pfetch, sb.toString());
             }
 
         }
