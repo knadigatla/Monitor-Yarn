@@ -24,46 +24,6 @@ import java.util.Properties;
  */
 public class MonitorYarn {
 
-        public void test(){
-            InputStream in = null;
-
-            try {
-//            in = new URL( "http://172.16.5.249:8088/ws/v1/cluster/apps" ).openStream();
-                in = new URL( "file:///Users/kiran/Desktop/test.json" ).openStream();
-                JSONObject jobj = new JSONObject(IOUtils.toString( in ));
-                List<Application> listAppl = new ArrayList<Application>();
-
-                System.out.println("test");
-
-                JSONArray newobjArray = (jobj.getJSONObject("apps")).getJSONArray("app");
-
-                for (int i=0; i < newobjArray.length(); i++) {
-
-                    Application app = new Application();
-                    app.setId(newobjArray.getJSONObject(i).getString("id"));
-                    app.setUser(newobjArray.getJSONObject(i).getString("user"));
-                    app.setName(newobjArray.getJSONObject(i).getString("name"));
-                    app.setQueue(newobjArray.getJSONObject(i).getString("queue"));
-                    app.setState(newobjArray.getJSONObject(i).getString("state"));
-                    app.setFinalStatus(newobjArray.getJSONObject(i).getString("finalStatus"));
-                    app.setProgress(newobjArray.getJSONObject(i).getDouble("progress"));
-                    app.setStartedTime(new Timestamp(newobjArray.getJSONObject(i).getLong("startedTime")));
-                    app.setFinishedTime(new Timestamp(newobjArray.getJSONObject(i).getLong("finishedTime")));
-                    app.setElapsedTime(newobjArray.getJSONObject(i).getLong("elapsedTime")/1000.0);
-
-                    listAppl.add(app);
-                }
-
-                System.out.println(listAppl.size());
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            finally {
-                IOUtils.closeQuietly(in);
-            }
-        }
-
 
         public static List<Application> listApplications(String url) {
 
@@ -102,6 +62,44 @@ public class MonitorYarn {
             }
             return listAppl;
         }
+
+    public static List<Application> listApplications(String url, String user) {
+
+        InputStream in = null;
+        List<Application> listAppl = null;
+
+        try {
+            in = new URL(url+"?user="+user).openStream();
+
+            JSONObject jobj = new JSONObject(IOUtils.toString( in ));
+            listAppl = new ArrayList<Application>();
+            JSONArray jsonAppArray = (jobj.getJSONObject("apps")).getJSONArray("app");
+
+            for (int i=0; i < jsonAppArray.length(); i++) {
+
+                Application app = new Application();
+                app.setId(jsonAppArray.getJSONObject(i).getString("id"));
+                app.setUser(jsonAppArray.getJSONObject(i).getString("user"));
+                app.setName(jsonAppArray.getJSONObject(i).getString("name"));
+                app.setQueue(jsonAppArray.getJSONObject(i).getString("queue"));
+                app.setState(jsonAppArray.getJSONObject(i).getString("state"));
+                app.setFinalStatus(jsonAppArray.getJSONObject(i).getString("finalStatus"));
+                app.setProgress(jsonAppArray.getJSONObject(i).getDouble("progress"));
+                app.setStartedTime(new Timestamp(jsonAppArray.getJSONObject(i).getLong("startedTime")));
+                app.setFinishedTime(new Timestamp(jsonAppArray.getJSONObject(i).getLong("finishedTime")));
+                app.setElapsedTime(jsonAppArray.getJSONObject(i).getLong("elapsedTime")/1000.0);
+
+                listAppl.add(app);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        finally {
+            IOUtils.closeQuietly(in);
+        }
+        return listAppl;
+    }
 
         public static List<Application> listApplicationsWithJson(String json) {
 
@@ -170,6 +168,44 @@ public class MonitorYarn {
             return listAppl;
         }
 
+    public static List<Application> failedApplications(String url, String user) {
+
+        InputStream in = null;
+        List<Application> listAppl = null;
+
+        try {
+            in = new URL(url+"?user="+user+"&finalStatus=FAILED").openStream();
+
+            JSONObject jobj = new JSONObject(IOUtils.toString( in ));
+            listAppl = new ArrayList<Application>();
+            JSONArray jsonAppArray = (jobj.getJSONObject("apps")).getJSONArray("app");
+
+            for (int i=0; i < jsonAppArray.length(); i++) {
+
+                Application app = new Application();
+                app.setId(jsonAppArray.getJSONObject(i).getString("id"));
+                app.setUser(jsonAppArray.getJSONObject(i).getString("user"));
+                app.setName(jsonAppArray.getJSONObject(i).getString("name"));
+                app.setQueue(jsonAppArray.getJSONObject(i).getString("queue"));
+                app.setState(jsonAppArray.getJSONObject(i).getString("state"));
+                app.setFinalStatus(jsonAppArray.getJSONObject(i).getString("finalStatus"));
+                app.setProgress(jsonAppArray.getJSONObject(i).getDouble("progress"));
+                app.setStartedTime(new Timestamp(jsonAppArray.getJSONObject(i).getLong("startedTime")));
+                app.setFinishedTime(new Timestamp(jsonAppArray.getJSONObject(i).getLong("finishedTime")));
+                app.setElapsedTime(jsonAppArray.getJSONObject(i).getLong("elapsedTime")/1000.0);
+
+                listAppl.add(app);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        finally {
+            IOUtils.closeQuietly(in);
+        }
+        return listAppl;
+    }
+
         public static boolean sendEmail(PropertyFetcher pFetcher, String content) {
 
             // Sender's email ID needs to be mentioned
@@ -229,6 +265,7 @@ public class MonitorYarn {
             }else {
 
                 PropertyFetcher pfetch = new PropertyFetcher(fd);
+                List<Application> listApps;
 
                 StringBuilder sb_url = new StringBuilder();
 
@@ -238,8 +275,21 @@ public class MonitorYarn {
                 sb_url.append(":"+pfetch.getProperty("rmport"));
                 sb_url.append("/ws/v1/cluster/apps");
 
-                System.out.println(sb_url.toString());
-                List<Application> listApps = failedApplications(sb_url.toString());
+                if(!pfetch.getProperty("username").trim().equalsIgnoreCase("") &&
+                        !pfetch.getProperty("alert_type").equalsIgnoreCase("")) {
+                    listApps = failedApplications(sb_url.toString(),pfetch.getProperty("user").trim());
+                } else if(pfetch.getProperty("username").trim().equalsIgnoreCase("") &&
+                        !pfetch.getProperty("alert_type").equalsIgnoreCase("")) {
+                    listApps = failedApplications(sb_url.toString());
+                } else if(!pfetch.getProperty("username").trim().equalsIgnoreCase("") &&
+                        pfetch.getProperty("alert_type").equalsIgnoreCase("")) {
+                    listApps = listApplications(sb_url.toString(),pfetch.getProperty("user"));
+                } else {
+                    listApps = listApplications(sb_url.toString());
+                }
+
+//                System.out.println(sb_url.toString());
+
 //                List<Application> listApps = failedApplications("file:///Users/kiran/Desktop/test.json");
 
                 StringBuilder sb = new StringBuilder();
